@@ -135,18 +135,43 @@ inline Duration get_service(const rapidjson::Value& object) {
   return service;
 }
 
-inline Duration get_priority(const rapidjson::Value& object) {
-  Priority priority = 0;
+inline std::pair<Priorities, Priority> get_priorities(const rapidjson::Value& object, std::vector<Id> listIds) {
+  Priorities priorities;
+  Priority max_priority;
   if (object.HasMember("priority")) {
-    if (!object["priority"].IsUint()) {
-      throw Exception(ERROR::INPUT, "Invalid priority value.");
+    if(object["priority"].IsUint()) {
+      const Priority valuePriority = object["priority"].GetUint();
+      for (auto i = 0; i < listIds.size(); ++i){
+        priorities.insert(std::pair<Id,Priority>((i),valuePriority));
+      }
+      max_priority = valuePriority;
     }
-    priority = object["priority"].GetUint();
-    if (priority > MAX_PRIORITY) {
-      throw Exception(ERROR::INPUT, "Invalid priority value.");
+    else{
+      if (!object["priority"].IsArray()) {
+        throw Exception(ERROR::INPUT, "Invalid priorities object.");
+      }
+      max_priority = object["priority"][0].GetUint();
+
+      for (rapidjson::SizeType i = 0; i < object["priority"].Size(); ++i) {
+        if (!object["priority"][i].IsUint()) {
+          throw Exception(ERROR::INPUT, "Invalid priority value.");
+        }
+        const Priority priority_job_vehicle = object["priority"][0].GetUint();
+        priorities.insert(std::pair<Id,Priority>((i),object["priority"][0].GetUint()));
+        if(priority_job_vehicle>max_priority){
+          max_priority = priority_job_vehicle;
+        }
+      }
     }
   }
-  return priority;
+  else {
+    for (auto i = 0; i < listIds.size(); ++i){
+        priorities.insert(std::pair<Id,Priority>((i),0));
+      }
+      max_priority = 0;
+  }
+  std::pair<Priorities, Priority> result(priorities, max_priority);
+  return result;
 }
 
 inline void check_id(const rapidjson::Value& v, const std::string& type) {
@@ -345,6 +370,9 @@ Input parse(const CLArgs& cl_args) {
     }
     input.set_matrix(std::move(matrix_input));
 
+    // Creating listIds to use in Priority
+    std::vector<Id> listIds;
+
     // Add all vehicles.
     for (rapidjson::SizeType i = 0; i < json_input["vehicles"].Size(); ++i) {
       auto& json_vehicle = json_input["vehicles"][i];
@@ -420,6 +448,7 @@ Input parse(const CLArgs& cl_args) {
                       get_string(json_vehicle, "description"));
 
       input.add_vehicle(vehicle);
+      listIds.push_back(json_vehicle["id"].GetUint64());
 
       std::string current_profile = get_string(json_vehicle, "profile");
       if (current_profile.empty()) {
@@ -454,6 +483,10 @@ Input parse(const CLArgs& cl_args) {
                                   !json_job.HasMember("delivery") and
                                   !json_job.HasMember("pickup");
 
+        std::pair<Priorities, Priority> resultGetPriorities = get_priorities(json_job, listIds);
+        auto priorities = resultGetPriorities.first;
+        auto max_priority = resultGetPriorities.second;
+
         Job job(json_job["id"].GetUint64(),
                 json_job.HasMember("location")
                   ? Location(job_loc_index,
@@ -465,7 +498,8 @@ Input parse(const CLArgs& cl_args) {
                   : get_amount(json_job, "delivery", amount_size),
                 get_amount(json_job, "pickup", amount_size),
                 get_skills(json_job),
-                get_priority(json_job),
+                priorities,
+                max_priority,
                 get_job_time_windows(json_job),
                 get_string(json_job, "description"));
 
@@ -483,7 +517,10 @@ Input parse(const CLArgs& cl_args) {
         // Retrieve common stuff for both pickup and delivery.
         auto amount = get_amount(json_shipment, "amount", amount_size);
         auto skills = get_skills(json_shipment);
-        auto priority = get_priority(json_shipment);
+
+        std::pair<Priorities, Priority> resultGetPriorities = get_priorities(json_shipment, listIds);
+        auto priorities = resultGetPriorities.first;
+        auto max_priority = resultGetPriorities.second;
 
         // Defining pickup job.
         auto& json_pickup = json_shipment["pickup"];
@@ -502,7 +539,8 @@ Input parse(const CLArgs& cl_args) {
                    get_service(json_pickup),
                    amount,
                    skills,
-                   priority,
+                   priorities,
+                   max_priority,
                    get_job_time_windows(json_pickup),
                    get_string(json_pickup, "description"));
 
@@ -523,7 +561,8 @@ Input parse(const CLArgs& cl_args) {
                      get_service(json_delivery),
                      amount,
                      skills,
-                     priority,
+                     priorities,
+                     max_priority,
                      get_job_time_windows(json_delivery),
                      get_string(json_delivery, "description"));
 
@@ -533,6 +572,9 @@ Input parse(const CLArgs& cl_args) {
   } else {
     // Adding vehicles and jobs only, matrix will be computed using
     // routing engine upon solving.
+
+    // Creating listIds to use in Priority
+    std::vector<Id> listIds;
 
     // All vehicles.
     for (rapidjson::SizeType i = 0; i < json_input["vehicles"].Size(); ++i) {
@@ -559,6 +601,7 @@ Input parse(const CLArgs& cl_args) {
                       get_string(json_vehicle, "description"));
 
       input.add_vehicle(vehicle);
+      listIds.push_back(json_vehicle["id"].GetUint64());
 
       std::string current_profile = get_string(json_vehicle, "profile");
       if (current_profile.empty()) {
@@ -591,6 +634,10 @@ Input parse(const CLArgs& cl_args) {
                                   !json_job.HasMember("delivery") and
                                   !json_job.HasMember("pickup");
 
+        std::pair<Priorities, Priority> resultGetPriorities = get_priorities(json_job, listIds);
+        auto priorities = resultGetPriorities.first;
+        auto max_priority = resultGetPriorities.second;
+
         Job job(json_job["id"].GetUint64(),
                 parse_coordinates(json_job, "location"),
                 get_service(json_job),
@@ -599,7 +646,8 @@ Input parse(const CLArgs& cl_args) {
                   : get_amount(json_job, "delivery", amount_size),
                 get_amount(json_job, "pickup", amount_size),
                 get_skills(json_job),
-                get_priority(json_job),
+                priorities,
+                max_priority,
                 get_job_time_windows(json_job),
                 get_string(json_job, "description"));
 
@@ -617,7 +665,9 @@ Input parse(const CLArgs& cl_args) {
         // Retrieve common stuff for both pickup and delivery.
         auto amount = get_amount(json_shipment, "amount", amount_size);
         auto skills = get_skills(json_shipment);
-        auto priority = get_priority(json_shipment);
+        std::pair<Priorities, Priority> resultGetPriorities = get_priorities(json_shipment, listIds);
+        auto priorities = resultGetPriorities.first;
+        auto max_priority = resultGetPriorities.second;
 
         // Defining pickup job.
         auto& json_pickup = json_shipment["pickup"];
@@ -631,7 +681,8 @@ Input parse(const CLArgs& cl_args) {
                    get_service(json_pickup),
                    amount,
                    skills,
-                   priority,
+                   priorities,
+                   max_priority,
                    get_job_time_windows(json_pickup),
                    get_string(json_pickup, "description"));
 
@@ -647,7 +698,8 @@ Input parse(const CLArgs& cl_args) {
                      get_service(json_delivery),
                      amount,
                      skills,
-                     priority,
+                     priorities,
+                     max_priority,
                      get_job_time_windows(json_delivery),
                      get_string(json_delivery, "description"));
 

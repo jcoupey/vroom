@@ -19,6 +19,9 @@ All rights reserved (see LICENSE).
 #include "structures/vroom/tw_route.h"
 #include "utils/exception.h"
 
+#include <string>
+#include <iostream>
+
 namespace vroom {
 namespace utils {
 
@@ -192,12 +195,13 @@ inline Gain addition_cost(const Input& input,
 }
 
 inline Cost priority_sum_for_route(const Input& input,
-                                   const std::vector<Index>& route) {
+                                   const std::vector<Index>& route,
+                                   const Index vehicle_rank) {
   return std::accumulate(route.begin(),
                          route.end(),
                          0,
                          [&](auto sum, auto job_rank) {
-                           return sum + input.jobs[job_rank].priority;
+                           return sum + input.jobs[job_rank].priorities.at(vehicle_rank);
                          });
 }
 
@@ -307,7 +311,7 @@ inline Solution format_solution(const Input& input,
     assert(input.vehicle_ok_with_job(i, route.front()));
     auto& first_job = input.jobs[route.front()];
     service += first_job.service;
-    priority += first_job.priority;
+    priority += first_job.priorities.at(i);
 
     current_load += first_job.pickup;
     current_load -= first_job.delivery;
@@ -335,7 +339,7 @@ inline Solution format_solution(const Input& input,
 
       auto& current_job = input.jobs[route[r + 1]];
       service += current_job.service;
-      priority += current_job.priority;
+      priority += current_job.priorities.at(i);
 
       current_load += current_job.pickup;
       current_load -= current_job.delivery;
@@ -597,7 +601,9 @@ inline Route format_route(const Input& input,
     // Back to current job.
     duration += travel_time;
     service += current_job.service;
-    priority += current_job.priority;
+    std::string strMytestString("Position 5");
+    std::cout << strMytestString;
+    priority += current_job.priorities.at(tw_r.vehicle_rank);
 
     current_load += current_job.pickup;
     current_load -= current_job.delivery;

@@ -103,7 +103,7 @@ void Input::add_job(const Job& job) {
 }
 
 void Input::add_shipment(const Job& pickup, const Job& delivery) {
-  if (pickup.priority != delivery.priority) {
+  if (pickup.priorities != delivery.priorities) {
     throw Exception(ERROR::INPUT, "Inconsistent shipment priority.");
   }
   if (!(pickup.pickup == delivery.delivery)) {
