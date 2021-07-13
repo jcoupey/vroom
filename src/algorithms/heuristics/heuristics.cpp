@@ -132,6 +132,10 @@ template <class T> T basic(const Input& input, INIT init, float lambda) {
           continue;
         }
 
+        if (!current_r.is_valid_addition_for_max_tasks(input, job_rank)) {
+          continue;
+        }
+
         bool is_pickup = (input.jobs[job_rank].type == JOB_TYPE::PICKUP);
 
         bool try_validity = false;
@@ -237,6 +241,10 @@ template <class T> T basic(const Input& input, INIT init, float lambda) {
         }
 
         if (input.jobs[job_rank].type == JOB_TYPE::DELIVERY) {
+          continue;
+        }
+
+        if (!current_r.is_valid_addition_for_max_tasks(input, job_rank)) {
           continue;
         }
 
@@ -504,6 +512,10 @@ T dynamic_vehicle_choice(const Input& input, INIT init, float lambda) {
           continue;
         }
 
+        if (!current_r.is_valid_addition_for_max_tasks(input, job_rank)) {
+          continue;
+        }
+
         bool is_pickup = (input.jobs[job_rank].type == JOB_TYPE::PICKUP);
 
         bool try_validity = false;
@@ -610,6 +622,10 @@ T dynamic_vehicle_choice(const Input& input, INIT init, float lambda) {
         }
 
         if (input.jobs[job_rank].type == JOB_TYPE::DELIVERY) {
+          continue;
+        }
+
+        if (!current_r.is_valid_addition_for_max_tasks(input, job_rank)) {
           continue;
         }
 

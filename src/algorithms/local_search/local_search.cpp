@@ -343,6 +343,11 @@ void LocalSearch<Route,
         if (addition_cost == std::numeric_limits<Gain>::max()) {
           continue;
         }
+
+        if (!_sol[routes[i]].is_valid_addition_for_max_tasks(_input, j)) {
+          continue;
+        }
+
         const Gain regret_cost =
           (i == smallest_idx) ? second_smallest : smallest;
 
@@ -665,6 +670,11 @@ void LocalSearch<Route,
           continue;
         }
 
+        auto v_t = _input.vehicles[_sol[s_t.second].vehicle_rank];
+        if (_sol[s_t.second].size() + 1 > v_t.max_number_of_tasks) {
+          continue;
+        }
+
         for (unsigned s_rank = 0; s_rank < _sol[s_t.first].size(); ++s_rank) {
           const auto& s_job_rank = _sol[s_t.first].route[s_rank];
           if (_input.jobs[s_job_rank].type != JOB_TYPE::SINGLE or
@@ -758,6 +768,16 @@ void LocalSearch<Route,
             continue;
           }
 
+          const auto& s_v = _input.vehicles[_sol[s_t.first].vehicle_rank];
+          const auto& t_v = _input.vehicles[_sol[s_t.second].vehicle_rank];
+
+          if (s_rank - t_rank + _sol[s_t.second].size() >
+                s_v.max_number_of_tasks or
+              t_rank - s_rank + _sol[s_t.first].size() >
+                t_v.max_number_of_tasks) {
+            continue;
+          }
+
           TwoOpt r(_input,
                    _sol_state,
                    _sol[s_t.first],
@@ -804,6 +824,16 @@ void LocalSearch<Route,
             continue;
           }
 
+          const auto& s_v = _input.vehicles[_sol[s_t.first].vehicle_rank];
+          const auto& t_v = _input.vehicles[_sol[s_t.second].vehicle_rank];
+
+          if (s_rank + t_rank + 2 > s_v.max_number_of_tasks or
+              (_sol[s_t.first].size() - s_rank - 1) +
+                  (_sol[s_t.second].size() - t_rank - 1) >
+                t_v.max_number_of_tasks) {
+            continue;
+          }
+
           ReverseTwoOpt r(_input,
                           _sol_state,
                           _sol[s_t.first],
@@ -829,6 +859,11 @@ void LocalSearch<Route,
       for (const auto& s_t : s_t_pairs) {
         if (s_t.first == s_t.second or best_priorities[s_t.first] > 0 or
             best_priorities[s_t.second] > 0 or _sol[s_t.first].size() == 0) {
+          continue;
+        }
+
+        auto v_t = _input.vehicles[_sol[s_t.second].vehicle_rank];
+        if (_sol[s_t.second].size() + 1 > v_t.max_number_of_tasks) {
           continue;
         }
 
@@ -871,6 +906,11 @@ void LocalSearch<Route,
       for (const auto& s_t : s_t_pairs) {
         if (s_t.first == s_t.second or best_priorities[s_t.first] > 0 or
             best_priorities[s_t.second] > 0 or _sol[s_t.first].size() < 2) {
+          continue;
+        }
+
+        auto v_t = _input.vehicles[_sol[s_t.second].vehicle_rank];
+        if (_sol[s_t.second].size() + 2 > v_t.max_number_of_tasks) {
           continue;
         }
 
@@ -1201,6 +1241,11 @@ void LocalSearch<Route,
           continue;
         }
 
+        auto v_t = _input.vehicles[_sol[s_t.second].vehicle_rank];
+        if (_sol[s_t.second].size() + 2 > v_t.max_number_of_tasks) {
+          continue;
+        }
+
         for (unsigned s_p_rank = 0; s_p_rank < _sol[s_t.first].size();
              ++s_p_rank) {
           if (_input.jobs[_sol[s_t.first].route[s_p_rank]].type !=
@@ -1256,6 +1301,14 @@ void LocalSearch<Route,
             _sol_state.bwd_skill_rank[s_t.second][s_t.first] > 0) {
           // Different routes (and operator is symmetric), at least
           // one non-empty and valid wrt vehicle/job compatibility.
+          continue;
+        }
+
+        const auto& s_v = _input.vehicles[_sol[s_t.first].vehicle_rank];
+        const auto& t_v = _input.vehicles[_sol[s_t.second].vehicle_rank];
+
+        if (_sol[s_t.first].size() > t_v.max_number_of_tasks or
+            _sol[s_t.second].size() > s_v.max_number_of_tasks) {
           continue;
         }
 

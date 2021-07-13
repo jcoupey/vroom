@@ -34,6 +34,7 @@ struct Vehicle {
   const std::vector<Break> breaks;
   const std::string description;
   CostWrapper cost_wrapper;
+  const size_t max_number_of_tasks;
   std::vector<VehicleStep> steps;
   std::unordered_map<Id, Index> break_id_to_rank;
 
@@ -48,6 +49,7 @@ struct Vehicle {
     const std::vector<Break>& breaks = std::vector<Break>(),
     const std::string& description = "",
     double speed_factor = 1.,
+    const size_t max_number_of_tasks = std::numeric_limits<size_t>::max(),
     const std::vector<VehicleStep>& input_steps = std::vector<VehicleStep>());
 
   bool has_start() const;

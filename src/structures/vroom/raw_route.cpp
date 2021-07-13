@@ -219,6 +219,14 @@ bool RawRoute::is_valid_addition_for_capacity_inclusion(
   return valid;
 }
 
+bool RawRoute::is_valid_addition_for_max_tasks(const Input& input,
+                                               const Index job_rank) const {
+  const auto& v = input.vehicles[vehicle_rank];
+  const auto& j = input.jobs[job_rank];
+
+  return (j.type == JOB_TYPE::SINGLE ? 1 : 2) + route.size() <= v.max_number_of_tasks;
+}
+
 Amount RawRoute::get_startup_load() const {
   return _current_loads[0];
 }

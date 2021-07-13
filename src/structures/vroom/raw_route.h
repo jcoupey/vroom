@@ -105,6 +105,8 @@ public:
                                                 const Index first_rank,
                                                 const Index last_rank) const;
 
+  bool is_valid_addition_for_max_tasks(const Input&, const Index) const;
+
   Amount get_startup_load() const;
 
   // Get sum of pickups (resp. deliveries) for all jobs in the range
